@@ -1,25 +1,129 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research - Week 2 Assignment"
+output:
+  html_document: default
+  html_notebook: default
 ---
 
+This R Markdown file takes you through the steps to complete week 2 peer graded assignment for Reproducible Research course.
 
-## Loading and preprocessing the data
+To start, set the working directory in the R studio to where you have placed the file 'activity.csv'. Below are the code for reading in the dataset and to look at summary of the dataset. 
 
-
+```{r}
+activity_data<-read.csv("activity.csv")
+summary(activity_data)
+```
 
 ## What is mean total number of steps taken per day?
 
+Below code does the following three calculations/plots:  
+1. calculate daywise number of steps and store it in the file 'sum_activity_daywise'.  
+2. create histogram for number of steps taken each day   
+3. mean and median of the total number of steps taken per day  
 
+```{r}
+sum_activity_daywise<-aggregate(steps ~ date, activity_data,sum,na.rm=TRUE)
 
+hist(sum_activity_daywise$steps,breaks=10,main="Number of steps taken per day",xlab="# of steps")
+
+mean_activity <-mean(sum_activity_daywise$steps, na.rm=TRUE)
+
+mean_activity
+
+median_activity <-median(sum_activity_daywise$steps, na.rm=TRUE)
+
+median_activity
+```
 ## What is the average daily activity pattern?
 
+Below code does the following two calculations/plots:  
+1. time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)  
+2. the 5-minute interval that, on average, contains the maximum number of steps   
 
+```{r}
+avg_activity_intervalwise<-aggregate(steps ~ interval, activity_data, mean,na.rm=TRUE)
+library(ggplot2)
+ggplot(avg_activity_intervalwise, aes(interval, steps)) + geom_line()+labs(title="Average number of steps taken by interval")
+
+max_step_interval<-avg_activity_intervalwise[which.max(avg_activity_intervalwise[,2]),][1]
+
+max_step_interval
+
+```
 
 ## Imputing missing values
 
+Below code does the following five calculations/plots:  
 
+1. Calculate total number of missing values in the dataset 
+2. Fill in the missing values in the dataset using the median for that day
+3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+4. Histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. 
+5. Impact of imputing missing data
+
+```{r warning=FALSE}
+#count number of missing values  
+na_count<-sum(is.na(activity_data$steps))
+na_count
+
+# Fill in the missing values in the dataset using the median for that day  
+median_activity_intervalwise<-avg_activity_intervalwise[,2]
+activity_data_new<-cbind(activity_data,median_activity_intervalwise)
+
+indx <- which(is.na(activity_data_new$steps), arr.ind = TRUE)
+
+steps_modified <- with(activity_data_new, replace(steps, indx, median_activity_intervalwise))
+
+#Create a new dataset that is equal to the original dataset but with the missing data filled in  
+
+activity_data_modified <- cbind(activity_data_new,steps_modified)[,-c(1,4)]
+summary(activity_data_modified)
+
+sum_activity_daywise_modified<-aggregate(steps_modified ~ date, activity_data_modified,sum,na.rm=TRUE)
+
+# Histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day   
+
+hist(sum_activity_daywise_modified$steps_modified,breaks=10,main="Number of steps taken per day",xlab="# of steps")
+
+mean_activity_modified <-mean(sum_activity_daywise_modified$steps_modified)
+
+mean_activity_modified
+
+median_activity_modified <-median(sum_activity_daywise_modified$steps_modified)
+
+median_activity_modified
+
+# Impact of imputing missing data  
+
+impact_NAs = (sum(sum_activity_daywise_modified$steps_modified)-sum(sum_activity_daywise$steps))/sum(sum_activity_daywise$steps)
+
+impact_NAs
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+Below code does the following two calculations/plots:  
+
+1. new factor variable in the dataset with two levels – “weekday” and “weekend” 
+2. Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+```{r message=FALSE}
+# Add new factor variable in the dataset with two levels – “weekday” and “weekend”   
+weekdays_label <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
+
+col_week<-factor((weekdays(as.Date(activity_data_modified$date)) %in% weekdays_label), levels=c(FALSE, TRUE), labels=c('weekend', 'weekday'))
+
+activity_data_weekwise <- cbind(activity_data_modified,col_week)
+
+# Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends  
+
+library(dplyr)
+activity_data_final <- activity_data_weekwise %>%
+    group_by(interval, col_week) %>% 
+    summarise(steps_modified=mean(steps_modified))
+
+library(ggplot2)
+p<-ggplot(activity_data_final, aes(interval, steps_modified))+geom_line() 
+p+facet_grid(col_week ~ .)+labs(title="Average number of steps taken by interval",x="number of steps")
+
+```
