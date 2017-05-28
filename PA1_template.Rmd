@@ -58,7 +58,7 @@ max_step_interval
 Below code does the following five calculations/plots:  
 
 1. Calculate total number of missing values in the dataset 
-2. Fill in the missing values in the dataset using the median for that day
+2. Fill in the missing values in the dataset using the mean for that 5-minute interval
 3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
 4. Histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. 
 5. Impact of imputing missing data
